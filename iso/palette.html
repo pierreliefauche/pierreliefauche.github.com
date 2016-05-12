@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Trio</title>
+  <style type="text/css">
+    * {
+      padding: 0;
+      margin: 0;
+      box-sizing: border-box;
+      font-family: system, -apple-system, "BlinkMacSystemFont",
+      ".SFNSDisplay-Regular", "Helvetica Neue", Helvetica, "Lucida Grande", Arial, sans-serif;
+    }
+    #panels {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 30px;
+    }
+    .panel {
+      height: 100%;
+      width: 33.33333333%;
+      float: left;
+      position: relative;
+    }
+    .picker {
+      width: 100%;
+      height: auto;
+      position: absolute;
+      top: 0;
+      text-align: center;
+      padding-top: 30px;
+    }
+    .panel.with-picker .picker {
+      height: 100%;
+      position: relative;
+    }
+    .picker .color {
+      display: hidden;
+      width: 100%;
+      list-style: none;
+    }
+    .panel.with-picker .picker .color {
+      display: block;
+    }
+    .panel .label {
+      width: 100%;
+      background: black;
+      color: white;
+      height: 30px;
+      position: absolute;
+      top: 0;
+      text-align: center;
+      line-height: 28px;
+      font-size: smaller;
+    }
+    #bookmarks {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 30px;
+      padding: 4px 0 0 0px;
+      background: black;
+      line-height: 30px;
+    }
+    #bookmarks svg {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      cursor: pointer;
+    }
+    .add {
+      line-height: 0;
+      position: absolute;
+      right: 10px;
+      bottom: 5px;
+    }
+    .bookmark {
+      display: inline-block;
+      line-height: 0;
+      margin-right: 4px;
+    }
+    .bookmark .color {
+      width: 10px;
+      height: 20px;
+      display: inline-block;
+    }
+    .bookmark svg {
+      visibility: hidden;
+    }
+    .bookmark:hover svg {
+      visibility: visible;
+    }
+  </style>
+</head>
+<body>
+  <div id="panels"></div>
+  <div id="bookmarks"></div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+  <script type="text/javascript">
+    var colors = {
+      // whites and greys
+      'aluminium': '#EAECE9',
+      'écorce de bouleau': '#EAE5E1',
+      'pierre de lune': '#D5D6D8',
+      'grès': '#CBCCC6',
+      'volupté': '#FDF3F1',
+      'céruse': '#F6EAEA',
+
+      // yellow
+      'colza': '#F0EA5C',
+      'lune de miel': '#F2D465',
+      'pêche blanche': '#FDCE74',
+      'chasselas': '#F0CB7F',
+      'sabayon': '#FEEB94',
+
+      // reds
+      'terracotta': '#EC8865',
+      'paprika': '#D9654C',
+      'rouge passion': '#8E1B28',
+      'rouge arsenal': '#D82430',
+      'rouge nomade': '#CB0814',
+      'colorado': '#C85B59',
+
+      // purple, rose
+      'crocus': '#E7D7FE',
+      'lait fraise': '#E6BACE',
+      'ultra violet': '#967496',
+
+      // Blue
+      'blush': '#FDD7D8',
+      'baie de sureau': '#4A2D3C',
+      'bleu chardon': '#466894',
+
+      // Browns
+      'coquille d’oeuf': '#E3D1AE',
+      'grège': '#CAB38D',
+      'ombre brulée': '#705D4E',
+      'tabac': '#603F25',
+
+      // vert
+      'santoline': '#DEEBDB',
+      'oléron': '#4E6E36',
+    };
+
+    var setPanelLabel = function($panel, colorName) {
+      $panel.find('.label')[0].innerText = colorName;
+    };
+
+    var setPanelColor = function($panel, colorName) {
+      colorName = colorName || '';
+
+      $panel.attr('data-color', colorName);
+      $panel.css('background', colors[colorName]);
+      $panel.toggleClass('with-picker', !colorName);
+      setPanelLabel($panel, colorName);
+
+      var palette = $.map($('.panel'), function(p) {return $(p).attr('data-color')}).sort();
+      window.location.hash = encodeURIComponent(palette.join(','));
+    };
+
+    var initColorPicker = function($panel) {
+      var $picker = $('<ul class="picker"></ul>');
+
+      // Add colors to picker
+      var colorNames = Object.keys(colors);
+      colorNames.forEach(function(colorName) {
+        $picker.append('<li class="color" data-color="' + colorName + '" style="background: ' + colors[colorName] + ';height:' + (100/colorNames.length) + '%"></li>')
+      });
+
+      $panel.append($picker);
+
+      $picker.on('click', '.color', function(event) {
+        event.stopPropagation();
+        var $cell = $(event.target);
+        setPanelColor($panel, $cell.attr('data-color'));
+      });
+
+      $picker.on('mouseleave', '.color', function(event) {
+        if ($panel.hasClass('with-picker')) {
+          setPanelLabel($panel, '');
+        }
+      });
+
+      $picker.on('mouseenter', '.color', function(event) {
+        event.stopPropagation();
+        var $cell = $(event.target);
+        setPanelLabel($panel, $cell.attr('data-color'));
+      });
+    };
+
+    var initPanel = function($container) {
+      var $panel = $('<div class="panel"><div class="label"><div></div>');
+      initColorPicker($panel);
+      $container.append($panel);
+
+      $panel.click(function() {
+        $panel.addClass('with-picker');
+      });
+    };
+
+    var initPanels = function($panelsContainer) {
+      for (var i = 0; i < 3; i++) {
+        initPanel($panelsContainer);
+      }
+    };
+
+    var appendBookmark = function($bookmarksContainer, bookmark) {
+      var colorNames = bookmark.split(',');
+
+      var $bookmark = $('<a class="bookmark" href="#' + encodeURIComponent(bookmark) + '"></a>');
+      $bookmarksContainer.append($bookmark);
+
+      for (var i = 0; i < 3; i++) {
+        $bookmark.append('<div class="color" style="background:' + colors[colorNames[i]] + '"></div>');
+      }
+
+      var $removeButton = $('<svg fill="#FFFFFF"viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+      $bookmark.prepend($removeButton);
+      $removeButton.click(function(event) {
+        event.stopPropagation();
+        forgetBookmark(bookmark);
+        $bookmark.remove();
+      });
+
+      $bookmark.click(function() {
+        selectBookmark(bookmark);
+      });
+    };
+
+    var getBookmarks = function() {
+      return JSON.parse(window.localStorage.getItem('bookmarks') || '[]');
+    };
+
+    var saveBookmarks = function(bookmarks) {
+      window.localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+    }
+
+    var saveBookmark = function() {
+      var bookmark = decodeURIComponent(location.hash.replace('#', '')).split(',').sort().join(',');
+      var bookmarks = getBookmarks();
+      if (bookmarks.indexOf(bookmark) !== -1) {
+        return null;
+      }
+
+      bookmarks.push(bookmark);
+      saveBookmarks(bookmarks);
+      return bookmark;
+    };
+
+    var forgetBookmark = function(bookmark) {
+      var bookmarks = getBookmarks();
+      bookmarks = bookmarks.filter(function(b) {
+        return b !== bookmark;
+      });
+      saveBookmarks(bookmarks);
+    };
+
+    var initBookmarks = function($bookmarksContainer) {
+      var $addButton = $('<svg class="add" fill="#FFFFFF" viewBox="0 0 24 24"xmlns="http://www.w3.org/2000/svg"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+      $bookmarksContainer.append($addButton);
+      $addButton.click(function() {
+        var bookmark = saveBookmark();
+        if (bookmark) {
+          appendBookmark($bookmarksContainer, bookmark);
+        }
+      });
+
+      getBookmarks().forEach(function(bookmark) {
+        appendBookmark($bookmarksContainer, bookmark);
+      });
+    };
+
+    var selectBookmark = function(bookmark) {
+      var colorNames = bookmark.split(',');
+      $('#panels .panel').each(function(i, panel) {
+        console.log(i, panel);
+        setPanelColor($(panel), colorNames[i]);
+      });
+    };
+
+    initPanels($('#panels'));
+    initBookmarks($('#bookmarks'));
+    selectBookmark(decodeURIComponent(location.hash.replace('#', '')));
+  </script>
+</body>
+</html>
